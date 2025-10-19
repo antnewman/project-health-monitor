@@ -12,7 +12,7 @@ import { ResourceManagerView } from '@/components/dashboard/ResourceManagerView'
 import { PlannerView } from '@/components/dashboard/PlannerView';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Badge } from '@/components/common/Badge';
-import { LayoutDashboard, Upload, Users, Target, BarChart3, FileText, X, AlertCircle, CheckCircle } from 'lucide-react';
+import { LayoutDashboard, Upload, Users, Target, BarChart3, X, AlertCircle, CheckCircle } from 'lucide-react';
 
 function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -55,24 +55,26 @@ function App() {
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-gradient-to-br from-tortoise-fuchsia to-accent-green rounded-lg">
-                    <FileText className="w-6 h-6 text-white" />
-                  </div>
-                  <h1 className="text-3xl font-bold text-deep-slate">
+                  <img
+                    src="/images/logo.png"
+                    alt="TortoiseAI Logo"
+                    className="h-10 w-auto"
+                  />
+                  <h1 className="text-3xl font-bold text-secondary">
                     Project Health & Behaviour Monitor
                   </h1>
                 </div>
                 <div className="flex items-center gap-4 text-sm ml-14">
                   <span className="text-gray-600">
-                    Built for <span className="font-semibold text-tortoise-fuchsia">Projecting Success Hackathon</span>
+                    Built for <span className="font-semibold text-primary">Projecting Success Hackathon</span>
                   </span>
                   <span className="text-gray-400">•</span>
                   <span className="text-gray-600">
-                    Sponsored by <span className="font-semibold text-deep-slate">Thales</span>
+                    Sponsored by <span className="font-semibold text-secondary">Thales</span>
                   </span>
                   <span className="text-gray-400">•</span>
                   <span className="text-gray-600">
-                    Developed by <a href="https://tortoiseai.co.uk" target="_blank" rel="noopener noreferrer" className="font-semibold text-tortoise-fuchsia hover:underline">TortoiseAI</a>
+                    Developed by <a href="https://tortoiseai.co.uk" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">TortoiseAI</a>
                   </span>
                 </div>
                 <p className="text-sm text-gray-500 italic mt-1 ml-14">Steady progress. Lasting results.</p>
@@ -86,7 +88,7 @@ function App() {
                     </Badge>
                     <button
                       onClick={() => setShowUploader(!showUploader)}
-                      className="px-4 py-2 bg-tortoise-fuchsia text-white rounded-lg hover:opacity-90 transition-opacity font-medium text-sm flex items-center gap-2"
+                      className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm flex items-center gap-2"
                     >
                       <Upload className="w-4 h-4" />
                       Upload New File
@@ -186,8 +188,8 @@ function App() {
           {showUploader || tasks.length === 0 ? (
             <div className="max-w-3xl mx-auto">
               {/* Hackathon Context Banner */}
-              <div className="bg-gradient-to-br from-tortoise-fuchsia/5 to-accent-green/5 border border-tortoise-fuchsia/20 rounded-lg p-6 mb-8">
-                <h2 className="text-xl font-semibold text-deep-slate mb-3">
+              <div className="bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/20 rounded-lg p-6 mb-8">
+                <h2 className="text-xl font-semibold text-secondary mb-3">
                   Hackathon Challenge: Risky Resource Routines
                 </h2>
                 <p className="text-gray-700 mb-2">
@@ -216,19 +218,19 @@ function App() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
               <div>
-                <h3 className="font-semibold text-deep-slate mb-2">Hackathon</h3>
+                <h3 className="font-semibold text-secondary mb-2">Hackathon</h3>
                 <p className="text-sm text-gray-600">Projecting Success Hackathon</p>
                 <p className="text-xs text-gray-500 mt-1">Challenge 5: Risky Resource Routines</p>
               </div>
               <div>
-                <h3 className="font-semibold text-deep-slate mb-2">Sponsor</h3>
+                <h3 className="font-semibold text-secondary mb-2">Sponsor</h3>
                 <p className="text-sm text-gray-600">Thales</p>
                 <p className="text-xs text-gray-500 mt-1">Innovation in Project Management</p>
               </div>
               <div>
-                <h3 className="font-semibold text-deep-slate mb-2">Developer</h3>
+                <h3 className="font-semibold text-secondary mb-2">Developer</h3>
                 <p className="text-sm text-gray-600">
-                  <a href="https://tortoiseai.co.uk" target="_blank" rel="noopener noreferrer" className="text-tortoise-fuchsia hover:underline font-semibold">
+                  <a href="https://tortoiseai.co.uk" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-semibold">
                     TortoiseAI
                   </a>
                 </p>

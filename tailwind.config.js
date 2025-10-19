@@ -7,15 +7,26 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#3b82f6',
-        secondary: '#8b5cf6',
+        primary: '#D946EF',
+        secondary: '#334155',
+        background: '#F8FAFC',
+        accent: '#10B981',
         success: '#10b981',
         warning: '#f59e0b',
         danger: '#ef4444',
-        // TortoiseAI Brand Colors
-        'tortoise-fuchsia': '#C724B1',
-        'accent-green': '#00D9A3',
-        'deep-slate': '#1A1A2E',
+        // TortoiseAI Brand Colors (kept for compatibility)
+        'tortoise-fuchsia': '#D946EF',
+        'accent-green': '#10B981',
+        'deep-slate': '#334155',
+      },
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+      },
+      transitionDuration: {
+        'tortoise': '300ms',
+      },
+      transitionTimingFunction: {
+        'tortoise': 'ease-in-out',
       },
     },
   },
