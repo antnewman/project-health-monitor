@@ -15,11 +15,9 @@
 
 ## 📸 Preview
 
-*[Screenshot placeholder: Upload interface with drag-and-drop]*
+<img width="861" height="641" alt="image" src="https://github.com/user-attachments/assets/063e9549-b46f-46e8-98f9-cace4c5be43c" />
 
-*[Screenshot placeholder: Senior Leader dashboard with AI insights]*
-
-*[Screenshot placeholder: Planner view with personalized coaching]*
+<img width="909" height="629" alt="image" src="https://github.com/user-attachments/assets/71692740-c826-4a42-956c-79cd6de99011" />
 
 ---
 
