@@ -7,8 +7,10 @@ import type { Task } from '@/types';
 import { KPICard } from '@/components/common/KPICard';
 import { Badge } from '@/components/common/Badge';
 import { ResourceHeatmap } from '@/components/charts/ResourceHeatmap';
-import { Users, UserCheck, UserX, AlertCircle } from 'lucide-react';
-import { useMemo } from 'react';
+import { Users, UserCheck, UserX, AlertCircle, Sparkles, Loader2 } from 'lucide-react';
+import { calculatePortfolioMetrics } from '@/lib/calculations';
+import { generateResourceInsights, isClaudeConfigured, getErrorMessage } from '@/lib/claudeAPI';
+import { useMemo, useState } from 'react';
 
 interface ResourceManagerViewProps {
   tasks: Task[];
@@ -18,6 +20,13 @@ interface ResourceManagerViewProps {
  * Resource Manager View Component
  */
 export const ResourceManagerView: React.FC<ResourceManagerViewProps> = ({ tasks }) => {
+  const portfolioMetrics = useMemo(() => calculatePortfolioMetrics(tasks), [tasks]);
+
+  // AI Insights state
+  const [resourceInsights, setResourceInsights] = useState<string>('');
+  const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+  const [insightsError, setInsightsError] = useState<string>('');
+
   // Calculate resource metrics
   const resourceMetrics = useMemo(() => {
     const resourceMap = new Map<string, {
@@ -102,6 +111,27 @@ export const ResourceManagerView: React.FC<ResourceManagerViewProps> = ({ tasks 
     ? resourceMetrics.reduce((sum, r) => sum + r.utilisationPct, 0) / resourceMetrics.length
     : 0;
 
+  // Load AI insights for resource management
+  const loadResourceInsights = async () => {
+    if (!isClaudeConfigured()) {
+      setInsightsError('Claude API key not configured. Please add VITE_CLAUDE_API_KEY to your .env file.');
+      return;
+    }
+
+    setIsLoadingInsights(true);
+    setInsightsError('');
+
+    try {
+      const insights = await generateResourceInsights(portfolioMetrics);
+      setResourceInsights(insights);
+    } catch (error) {
+      console.error('Failed to load resource insights:', error);
+      setInsightsError(getErrorMessage(error));
+    } finally {
+      setIsLoadingInsights(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -163,6 +193,104 @@ export const ResourceManagerView: React.FC<ResourceManagerViewProps> = ({ tasks 
           </div>
         </div>
       )}
+
+      {/* AI-Powered Resource Planning Insights */}
+      <div className="bg-gradient-to-br from-green-50 to-teal-50 rounded-lg p-6 border-2 border-green-200 shadow-lg">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Sparkles className="h-6 w-6 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900">AI-Powered Capacity Planning</h3>
+              <p className="text-sm text-gray-600">Strategic resource management insights</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs bg-green-600 text-white px-3 py-1 rounded-full font-medium">
+              Powered by Claude
+            </span>
+            {!resourceInsights && !isLoadingInsights && (
+              <button
+                onClick={loadResourceInsights}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm flex items-center gap-2 shadow-md"
+              >
+                <Sparkles className="w-4 h-4" />
+                Get Insights
+              </button>
+            )}
+            {resourceInsights && !isLoadingInsights && (
+              <button
+                onClick={loadResourceInsights}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                Refresh
+              </button>
+            )}
+          </div>
+        </div>
+
+        {isLoadingInsights && (
+          <div className="flex flex-col items-center justify-center py-12 bg-white rounded-lg border-2 border-dashed border-green-300">
+            <Loader2 className="h-10 w-10 animate-spin text-green-600 mb-3" />
+            <p className="text-gray-700 font-medium">Analyzing resource allocation with AI...</p>
+            <p className="text-sm text-gray-500 mt-1">This may take 10-15 seconds</p>
+          </div>
+        )}
+
+        {insightsError && !isLoadingInsights && (
+          <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4">
+            <div className="flex gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-red-800 font-medium mb-1">Unable to Generate Insights</p>
+                <p className="text-red-700 text-sm">{insightsError}</p>
+                {!isClaudeConfigured() && (
+                  <p className="text-red-600 text-xs mt-2">
+                    Add your Claude API key to .env file: VITE_CLAUDE_API_KEY=sk-ant-your-key
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {resourceInsights && !isLoadingInsights && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg p-5 border border-green-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <Users className="w-5 h-5 text-green-600" />
+                <h4 className="font-semibold text-gray-900">Resource Management Strategy</h4>
+              </div>
+              <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
+                {resourceInsights.split('\n\n').map((paragraph, i) => (
+                  <p key={i} className="mb-3 last:mb-0">
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer note */}
+            <div className="flex items-center justify-center gap-2 text-xs text-gray-500 pt-2">
+              <Sparkles className="w-3 h-3" />
+              <span>AI-generated recommendations for resource capacity planning</span>
+            </div>
+          </div>
+        )}
+
+        {!resourceInsights && !isLoadingInsights && !insightsError && (
+          <div className="bg-white rounded-lg p-8 border-2 border-dashed border-green-300 text-center">
+            <Sparkles className="h-12 w-12 text-green-400 mx-auto mb-3" />
+            <p className="text-gray-700 font-medium mb-2">Get Resource Planning Insights</p>
+            <p className="text-sm text-gray-600 max-w-md mx-auto">
+              Receive AI-powered strategies to optimize resource allocation, reduce generic resource usage,
+              and improve capacity planning across your portfolio.
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Resource Utilisation Heatmap */}
       <div className="bg-white rounded-lg shadow border border-gray-200 p-6">

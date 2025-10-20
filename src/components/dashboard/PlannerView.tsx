@@ -7,9 +7,10 @@ import type { Task, ManagerMetrics } from '@/types';
 import { KPICard } from '@/components/common/KPICard';
 import { Badge } from '@/components/common/Badge';
 import { ForecastAccuracyChart } from '@/components/charts/ForecastAccuracyChart';
-import { Target, TrendingUp, Users, Award, AlertCircle, CheckCircle } from 'lucide-react';
-import { calculateManagerMetrics } from '@/lib/calculations';
-import { useMemo, useState } from 'react';
+import { Target, TrendingUp, Users, Award, AlertCircle, CheckCircle, Sparkles, Loader2 } from 'lucide-react';
+import { calculateManagerMetrics, calculatePortfolioMetrics } from '@/lib/calculations';
+import { generateManagerInsights, isClaudeConfigured, getErrorMessage } from '@/lib/claudeAPI';
+import { useMemo, useState, useEffect } from 'react';
 
 interface PlannerViewProps {
   tasks: Task[];
@@ -20,12 +21,24 @@ interface PlannerViewProps {
  */
 export const PlannerView: React.FC<PlannerViewProps> = ({ tasks }) => {
   const managerMetrics: ManagerMetrics[] = useMemo(() => calculateManagerMetrics(tasks), [tasks]);
+  const portfolioMetrics = useMemo(() => calculatePortfolioMetrics(tasks), [tasks]);
   const [selectedManager, setSelectedManager] = useState<string>(
     managerMetrics.length > 0 ? managerMetrics[0].manager : ''
   );
 
+  // AI Insights state
+  const [managerInsights, setManagerInsights] = useState<string>('');
+  const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+  const [insightsError, setInsightsError] = useState<string>('');
+
   const currentManagerMetrics = managerMetrics.find(m => m.manager === selectedManager);
   const managerTasks = tasks.filter(t => t.functionalManager === selectedManager);
+
+  // Reset insights when manager changes
+  useEffect(() => {
+    setManagerInsights('');
+    setInsightsError('');
+  }, [selectedManager]);
 
   // Calculate percentile rank
   const percentileRank = useMemo(() => {
@@ -112,6 +125,32 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ tasks }) => {
 
     return patterns;
   }, [currentManagerMetrics, managerTasks]);
+
+  // Load AI insights for the selected manager
+  const loadManagerInsights = async () => {
+    if (!currentManagerMetrics) return;
+
+    if (!isClaudeConfigured()) {
+      setInsightsError('Claude API key not configured. Please add VITE_CLAUDE_API_KEY to your .env file.');
+      return;
+    }
+
+    setIsLoadingInsights(true);
+    setInsightsError('');
+
+    try {
+      const insights = await generateManagerInsights(
+        currentManagerMetrics,
+        portfolioMetrics.avgForecastAccuracy
+      );
+      setManagerInsights(insights);
+    } catch (error) {
+      console.error('Failed to load manager insights:', error);
+      setInsightsError(getErrorMessage(error));
+    } finally {
+      setIsLoadingInsights(false);
+    }
+  };
 
   if (!currentManagerMetrics) {
     return (
@@ -202,6 +241,104 @@ export const PlannerView: React.FC<PlannerViewProps> = ({ tasks }) => {
           </div>
         </div>
       )}
+
+      {/* AI-Powered Personalized Coaching */}
+      <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg p-6 border-2 border-indigo-200 shadow-lg">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-indigo-100 rounded-lg">
+              <Sparkles className="h-6 w-6 text-indigo-600" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900">Personalized Coaching</h3>
+              <p className="text-sm text-gray-600">AI-powered feedback for {selectedManager}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs bg-indigo-600 text-white px-3 py-1 rounded-full font-medium">
+              Powered by Claude
+            </span>
+            {!managerInsights && !isLoadingInsights && (
+              <button
+                onClick={loadManagerInsights}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm flex items-center gap-2 shadow-md"
+              >
+                <Sparkles className="w-4 h-4" />
+                Get Coaching
+              </button>
+            )}
+            {managerInsights && !isLoadingInsights && (
+              <button
+                onClick={loadManagerInsights}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                Refresh
+              </button>
+            )}
+          </div>
+        </div>
+
+        {isLoadingInsights && (
+          <div className="flex flex-col items-center justify-center py-12 bg-white rounded-lg border-2 border-dashed border-indigo-300">
+            <Loader2 className="h-10 w-10 animate-spin text-indigo-600 mb-3" />
+            <p className="text-gray-700 font-medium">Analyzing your performance with AI...</p>
+            <p className="text-sm text-gray-500 mt-1">This may take 10-15 seconds</p>
+          </div>
+        )}
+
+        {insightsError && !isLoadingInsights && (
+          <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4">
+            <div className="flex gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-red-800 font-medium mb-1">Unable to Generate Coaching</p>
+                <p className="text-red-700 text-sm">{insightsError}</p>
+                {!isClaudeConfigured() && (
+                  <p className="text-red-600 text-xs mt-2">
+                    Add your Claude API key to .env file: VITE_CLAUDE_API_KEY=sk-ant-your-key
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {managerInsights && !isLoadingInsights && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg p-5 border border-indigo-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <Award className="w-5 h-5 text-indigo-600" />
+                <h4 className="font-semibold text-gray-900">Your Performance Analysis</h4>
+              </div>
+              <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
+                {managerInsights.split('\n\n').map((paragraph, i) => (
+                  <p key={i} className="mb-3 last:mb-0">
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer note */}
+            <div className="flex items-center justify-center gap-2 text-xs text-gray-500 pt-2">
+              <Sparkles className="w-3 h-3" />
+              <span>AI-generated coaching based on your performance metrics</span>
+            </div>
+          </div>
+        )}
+
+        {!managerInsights && !isLoadingInsights && !insightsError && (
+          <div className="bg-white rounded-lg p-8 border-2 border-dashed border-indigo-300 text-center">
+            <Sparkles className="h-12 w-12 text-indigo-400 mx-auto mb-3" />
+            <p className="text-gray-700 font-medium mb-2">Get Personalized Coaching</p>
+            <p className="text-sm text-gray-600 max-w-md mx-auto">
+              Receive AI-powered feedback on your strengths, areas for improvement, and actionable
+              suggestions tailored to your performance metrics.
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Accuracy Trend */}
       <div className="bg-white rounded-lg shadow border border-gray-200 p-6">

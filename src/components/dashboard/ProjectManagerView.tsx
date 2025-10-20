@@ -8,9 +8,10 @@ import { KPICard } from '@/components/common/KPICard';
 import { Badge } from '@/components/common/Badge';
 import { RAGDistribution } from '@/components/charts/RAGDistribution';
 import { ForecastAccuracyChart } from '@/components/charts/ForecastAccuracyChart';
-import { Target, AlertTriangle, TrendingUp, Package } from 'lucide-react';
+import { Target, AlertTriangle, TrendingUp, Package, Sparkles, Loader2 } from 'lucide-react';
 import { calculateProjectMetrics } from '@/lib/calculations';
-import { useMemo, useState } from 'react';
+import { generateProjectRecommendations, isClaudeConfigured, getErrorMessage } from '@/lib/claudeAPI';
+import { useMemo, useState, useEffect } from 'react';
 
 interface ProjectManagerViewProps {
   tasks: Task[];
@@ -25,8 +26,19 @@ export const ProjectManagerView: React.FC<ProjectManagerViewProps> = ({ tasks })
     projectMetrics.length > 0 ? projectMetrics[0].projectName : null
   );
 
+  // AI Insights state
+  const [projectRecommendations, setProjectRecommendations] = useState<string>('');
+  const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+  const [insightsError, setInsightsError] = useState<string>('');
+
   const currentProject = projectMetrics.find(p => p.projectName === selectedProject);
   const projectTasks = tasks.filter(t => t.projectName === selectedProject);
+
+  // Reset insights when project changes
+  useEffect(() => {
+    setProjectRecommendations('');
+    setInsightsError('');
+  }, [selectedProject]);
 
   // Calculate metrics for selected project
   const atRiskTasks = projectTasks.filter(
@@ -52,6 +64,29 @@ export const ProjectManagerView: React.FC<ProjectManagerViewProps> = ({ tasks })
       };
     });
   }, [projectTasks]);
+
+  // Load AI insights for the selected project
+  const loadProjectInsights = async () => {
+    if (!currentProject) return;
+
+    if (!isClaudeConfigured()) {
+      setInsightsError('Claude API key not configured. Please add VITE_CLAUDE_API_KEY to your .env file.');
+      return;
+    }
+
+    setIsLoadingInsights(true);
+    setInsightsError('');
+
+    try {
+      const recommendations = await generateProjectRecommendations(currentProject, projectTasks);
+      setProjectRecommendations(recommendations);
+    } catch (error) {
+      console.error('Failed to load project insights:', error);
+      setInsightsError(getErrorMessage(error));
+    } finally {
+      setIsLoadingInsights(false);
+    }
+  };
 
   if (!currentProject) {
     return (
@@ -137,6 +172,104 @@ export const ProjectManagerView: React.FC<ProjectManagerViewProps> = ({ tasks })
           </div>
         </div>
       )}
+
+      {/* AI-Powered Project Recommendations */}
+      <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-lg p-6 border-2 border-blue-200 shadow-lg">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Sparkles className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900">AI-Powered Project Insights</h3>
+              <p className="text-sm text-gray-600">Strategic recommendations for {selectedProject}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs bg-blue-600 text-white px-3 py-1 rounded-full font-medium">
+              Powered by Claude
+            </span>
+            {!projectRecommendations && !isLoadingInsights && (
+              <button
+                onClick={loadProjectInsights}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm flex items-center gap-2 shadow-md"
+              >
+                <Sparkles className="w-4 h-4" />
+                Get Recommendations
+              </button>
+            )}
+            {projectRecommendations && !isLoadingInsights && (
+              <button
+                onClick={loadProjectInsights}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                Refresh
+              </button>
+            )}
+          </div>
+        </div>
+
+        {isLoadingInsights && (
+          <div className="flex flex-col items-center justify-center py-12 bg-white rounded-lg border-2 border-dashed border-blue-300">
+            <Loader2 className="h-10 w-10 animate-spin text-blue-600 mb-3" />
+            <p className="text-gray-700 font-medium">Analyzing project risks with AI...</p>
+            <p className="text-sm text-gray-500 mt-1">This may take 10-15 seconds</p>
+          </div>
+        )}
+
+        {insightsError && !isLoadingInsights && (
+          <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4">
+            <div className="flex gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-red-800 font-medium mb-1">Unable to Generate Recommendations</p>
+                <p className="text-red-700 text-sm">{insightsError}</p>
+                {!isClaudeConfigured() && (
+                  <p className="text-red-600 text-xs mt-2">
+                    Add your Claude API key to .env file: VITE_CLAUDE_API_KEY=sk-ant-your-key
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {projectRecommendations && !isLoadingInsights && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg p-5 border border-blue-200 shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <Target className="w-5 h-5 text-blue-600" />
+                <h4 className="font-semibold text-gray-900">Strategic Interventions</h4>
+              </div>
+              <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
+                {projectRecommendations.split('\n\n').map((paragraph, i) => (
+                  <p key={i} className="mb-3 last:mb-0">
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            </div>
+
+            {/* Footer note */}
+            <div className="flex items-center justify-center gap-2 text-xs text-gray-500 pt-2">
+              <Sparkles className="w-3 h-3" />
+              <span>AI-generated recommendations based on project metrics and risk factors</span>
+            </div>
+          </div>
+        )}
+
+        {!projectRecommendations && !isLoadingInsights && !insightsError && (
+          <div className="bg-white rounded-lg p-8 border-2 border-dashed border-blue-300 text-center">
+            <Sparkles className="h-12 w-12 text-blue-400 mx-auto mb-3" />
+            <p className="text-gray-700 font-medium mb-2">Get AI-Powered Recommendations</p>
+            <p className="text-sm text-gray-600 max-w-md mx-auto">
+              Receive specific, actionable interventions you can implement this week to improve
+              project outcomes and mitigate risks.
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

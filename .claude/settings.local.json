@@ -4,7 +4,8 @@
       "Bash(npm run build)",
       "Bash(npm install @tailwindcss/postcss@latest)",
       "Read(//c/Users/antjs/tortoiseai-website/**)",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "Bash(npm install @anthropic-ai/sdk)"
     ],
     "deny": [],
     "ask": []
